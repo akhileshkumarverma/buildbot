@@ -26,13 +26,16 @@ from twisted.python import log
 from twisted.web import client
 
 from buildbot.changes import base
-from buildbot.util import ascii2unicode
+from buildbot.util import bytes2unicode
 from buildbot.util import datetime2epoch
 from buildbot.util import deferredLocked
 from buildbot.util import epoch2datetime
+from buildbot.util import httpclientservice
+from buildbot.util.state import StateMixin
 
 
-class BitbucketPullrequestPoller(base.PollingChangeSource):
+class BitbucketPullrequestPoller(base.ReconfigurablePollingChangeSource,
+                                 StateMixin):
 
     compare_attrs = ("owner", "slug", "branch",
                      "pollInterval", "useTimestamps",
@@ -40,43 +43,54 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
 
     db_class_name = 'BitbucketPullrequestPoller'
 
-    def __init__(self, owner, slug,
-                 branch=None,
-                 pollInterval=10 * 60,
-                 useTimestamps=True,
-                 category=None,
-                 project='',
-                 pullrequest_filter=True,
-                 encoding='utf-8',
-                 pollAtLaunch=False
-                 ):
+    def __init__(self, owner, slug, **kwargs):
+        name = kwargs.get("name")
+        if not name:
+            kwargs["name"] = "BitbucketPullrequestPoller:" + owner + "/" + slug
+        super(BitbucketPullrequestPoller, self).__init__(owner, slug, **kwargs)
 
+    def checkConfig(self,
+                    owner,
+                    slug,
+                    pollInterval=10 * 60,
+                    pollAtLaunch=False,
+                    **kwargs):
+        base.ReconfigurablePollingChangeSource.checkConfig(
+            self, name=self.name, pollInterval=pollInterval,
+            pollAtLaunch=pollAtLaunch)
+
+    @defer.inlineCallbacks
+    def reconfigService(self,
+                        owner,
+                        slug,
+                        branch=None,
+                        pollInterval=10 * 60,
+                        useTimestamps=True,
+                        category=None,
+                        project='',
+                        pullrequest_filter=True,
+                        encoding='utf-8',
+                        pollAtLaunch=False,
+                        **kwargs):
         self.owner = owner
         self.slug = slug
         self.branch = branch
-        base.PollingChangeSource.__init__(
-            self, name='/'.join([owner, slug]), pollInterval=pollInterval, pollAtLaunch=pollAtLaunch)
         self.encoding = encoding
-
-        if hasattr(pullrequest_filter, '__call__'):
-            self.pullrequest_filter = pullrequest_filter
-        else:
-            self.pullrequest_filter = (lambda _: pullrequest_filter)
 
         self.lastChange = time.time()
         self.lastPoll = time.time()
         self.useTimestamps = useTimestamps
         self.category = category if callable(
-            category) else ascii2unicode(category)
-        self.project = ascii2unicode(project)
-        self.initLock = defer.DeferredLock()
+            category) else bytes2unicode(category)
+        self.project = bytes2unicode(project)
+
 
     def describe(self):
         return "BitbucketPullrequestPoller watching the "\
             "Bitbucket repository {}/{}, branch: {}".format(
                 self.owner, self.slug, self.branch)
 
-    @deferredLocked('initLock')
+    @defer.inlineCallbacks
     def poll(self):
         d = self._getChanges()
         d.addCallback(self._processChanges)
@@ -144,16 +158,16 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
                     yield self._setCurrentRev(nr, revision)
                     # emit the change
                     yield self.master.data.updates.addChange(
-                        author=ascii2unicode(author),
-                        revision=ascii2unicode(revision),
-                        revlink=ascii2unicode(revlink),
+                        author=bytes2unicode(author),
+                        revision=bytes2unicode(revision),
+                        revlink=bytes2unicode(revlink),
                         comments=u'pull-request #{}: {}\n{}'.format(
                             nr, title, prlink),
                         when_timestamp=datetime2epoch(updated),
                         branch=self.branch,
                         category=self.category,
                         project=self.project,
-                        repository=ascii2unicode(repo),
+                        repository=bytes2unicode(repo),
                         src=u'bitbucket',
                     )
 
