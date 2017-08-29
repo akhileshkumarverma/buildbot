@@ -73,7 +73,7 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
 
     def describe(self):
         return "BitbucketPullrequestPoller watching the "\
-            "Bitbucket repository %s/%s, branch: %s" % (
+            "Bitbucket repository {}/{}, branch: {}".format(
                 self.owner, self.slug, self.branch)
 
     @deferredLocked('initLock')
@@ -86,8 +86,8 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
     def _getChanges(self):
         self.lastPoll = time.time()
         log.msg("BitbucketPullrequestPoller: polling "
-                "Bitbucket repository %s/%s, branch: %s" % (self.owner, self.slug, self.branch))
-        url = "https://bitbucket.org/api/2.0/repositories/%s/%s/pullrequests" % (
+                "Bitbucket repository {}/{}, branch: {}".format(self.owner, self.slug, self.branch))
+        url = "https://bitbucket.org/api/2.0/repositories/{}/{}/pullrequests".format(
             self.owner, self.slug)
         return client.getPage(url, timeout=self.pollInterval)
 
@@ -147,7 +147,7 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
                         author=ascii2unicode(author),
                         revision=ascii2unicode(revision),
                         revlink=ascii2unicode(revlink),
-                        comments=u'pull-request #%d: %s\n%s' % (
+                        comments=u'pull-request #{}: {}\n{}'.format(
                             nr, title, prlink),
                         when_timestamp=datetime2epoch(updated),
                         branch=self.branch,
@@ -172,7 +172,7 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
         @d.addCallback
         def oid_callback(oid):
             current = self.master.db.state.getState(
-                oid, 'pull_request%d' % pr_id, None)
+                oid, 'pull_request{}'.format(pr_id), None)
 
             @current.addCallback
             def result_callback(result):
@@ -186,11 +186,11 @@ class BitbucketPullrequestPoller(base.PollingChangeSource):
 
         @d.addCallback
         def oid_callback(oid):
-            return self.master.db.state.setState(oid, 'pull_request%d' % pr_id, rev)
+            return self.master.db.state.setState(oid, 'pull_request{}'.format(pr_id), rev)
 
         return d
 
     def _getStateObjectId(self):
         # Return a deferred for object id in state db.
         return self.master.db.state.getObjectId(
-            '%s/%s#%s' % (self.owner, self.slug, self.branch), self.db_class_name)
+            '{}/{}#{}'.format(self.owner, self.slug, self.branch), self.db_class_name)
