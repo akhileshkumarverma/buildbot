@@ -161,6 +161,17 @@ Several small utilities are available at the top-level :mod:`buildbot.util` pack
     If given a bytestring, it returns the string decoded as ASCII (and will thus fail for any bytes 0x80 or higher).
     If given a unicode string, it returns it directly.
 
+.. py:function:: bytes2unicode(bytes, encoding='utf-8', errors='strict'):
+
+    :param bytes: a bytestring
+    :param encoding: the character encoding to use when converting to unicode
+    :param errors: the error handling scheme
+    :returns: unicode
+
+    If given a bytestring, this function returns the bytestring decoded
+    using ``encoding`` which by default is UTF-8.
+    If given a unicode string, it returns it directly.
+
 .. py:function:: string2boolean(str):
 
     :param str: string
