@@ -63,9 +63,11 @@ isort:
 
 docker: docker-buildbot-worker docker-buildbot-worker-node docker-buildbot-master docker-buildbot-master-ubuntu
 	echo done
+docker-buildbot-build:
+	$(DOCKERBUILD) -t buildbot-build:latest -f master/Dockerfile.build master
 docker-buildbot-worker:
 	$(DOCKERBUILD) -t buildbot/buildbot-worker:master worker
-docker-buildbot-master:
+docker-buildbot-master: docker-buildbot-build
 	$(DOCKERBUILD) -t buildbot/buildbot-master:master master
 docker-buildbot-master-ubuntu:
 	$(DOCKERBUILD) -t buildbot/buildbot-master-ubuntu:master -f master/Dockerfile.ubuntu master
