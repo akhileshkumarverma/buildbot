@@ -1,10 +1,52 @@
-# buildbot/buildbot-master
+# buildbot/buildbot-build
 
 # please follow docker best practices
 # https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/
 #
-# Provides a base alpine image with latest buildbot master installed
-# Alpine base build is ~130MB vs ~500MB for the ubuntu build
+
+# Use a multi-stage build:
+# https://docs.docker.com/develop/develop-images/multistage-build/
+#
+# Provide an intermediate Docker image which builds binary wheels
+# which get installed in the final image.
+
+FROM        alpine:3.7 AS buildbot-build
+MAINTAINER  Buildbot maintainers
+
+# Last build date - this can be updated whenever there are security updates so
+# that everything is rebuilt
+ENV         security_updates_as_of 2018-04-10
+
+
+COPY . /usr/src/buildbot
+RUN \
+    echo @edgecommunity http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
+    echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
+    apk add --no-cache \
+        git \
+        python-dev \
+        libffi-dev \
+        openssl-dev \
+        py-pip \
+        alpine-sdk \
+        tar \
+        tzdata \
+        curl && \
+# install pip dependencies
+    pip install --upgrade pip setuptools wheel && \
+    pip install "buildbot[bundle,tls]" && \
+    pip install -r /usr/src/buildbot/requirements-docker-extras.txt && \
+    pip install "/usr/src/buildbot" && \
+    mkdir -p wheels && \
+    pip list --format freeze | grep -v '^buildbot=' > wheels/wheels.txt && \
+    cd wheels && \
+    pip wheel -r wheels.txt
+
+
+
+#==============================================================================================
+# Build the final image here.  Use build artifacts from the buildbot-build
+# container.
 
 # Note that the UI and worker packages are the latest version published on pypi
 # This is to avoid pulling node inside this container
