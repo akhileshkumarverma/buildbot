@@ -1,6 +1,5 @@
 /*
  * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
  * DS101: Remove unnecessary use of Array.from
  * DS102: Remove unnecessary code created because of implicit returns
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -10,11 +9,9 @@
 class DataProcessor extends Service {
     constructor() {
         {
-          // Hack: trick Babel/TypeScript into allowing this before super.
-          if (false) { super(); }
+          super();
           let thisFn = (() => { return this; }).toString();
           let thisName = thisFn.slice(thisFn.indexOf('return') + 6 + 1, thisFn.indexOf(';')).trim();
-          eval(`${thisName} = this;`);
         }
         ({});
     }

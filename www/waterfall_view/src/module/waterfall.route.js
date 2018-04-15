@@ -1,19 +1,12 @@
-/*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 // Register new state
 class State extends Config {
     constructor($stateProvider, glMenuServiceProvider) {
 
         // Name of the state
         {
-          // Hack: trick Babel/TypeScript into allowing this before super.
-          if (false) { super(); }
+          super();
           let thisFn = (() => { return this; }).toString();
           let thisName = thisFn.slice(thisFn.indexOf('return') + 6 + 1, thisFn.indexOf(';')).trim();
-          eval(`${thisName} = this;`);
         }
         const name = 'waterfall';
 
